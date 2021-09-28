@@ -69,21 +69,27 @@ public class MainActivity extends AppCompatActivity {
                     sendMessage();
                 }
             });
-            db.collection("messages").orderBy("createdTime").addSnapshotListener(new EventListener<QuerySnapshot>() {
-                @Override
-                public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
-                    List<Message> messages = null;
-                    if (value != null) {
-                        messages = value.toObjects(Message.class);
-                        adapterMessages.setMessages(messages);
-                        recyclerViewMessages.scrollToPosition(adapterMessages.getItemCount() - 1);
-                    }
-                }
-            });
         } else {
-            startActivity(new Intent(this, RegisterActivity.class));
+            singOut();
         }
+    }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        user = mAuth.getCurrentUser();
+        db.collection("messages").orderBy("createdTime").addSnapshotListener(new EventListener<QuerySnapshot>() {
+            @Override
+            public void onEvent(@Nullable QuerySnapshot value, @Nullable FirebaseFirestoreException error) {
+                List<Message> messages = null;
+                if (value != null) {
+                    messages = value.toObjects(Message.class);
+                    adapterMessages.setMessages(messages);
+                    recyclerViewMessages.scrollToPosition(adapterMessages.getItemCount() - 1);
+                }
+            }
+        });
+        recyclerViewMessages.scrollToPosition(adapterMessages.getItemCount() - 1);
     }
 
     @Override
@@ -104,7 +110,7 @@ public class MainActivity extends AppCompatActivity {
         String textOfMessage = editTextMessage.getText().toString().trim();
         if (!textOfMessage.isEmpty()) {
             long createdTime = System.currentTimeMillis();
-            Message message = new Message("Username", textOfMessage, createdTime);
+            Message message = new Message(user.getEmail(), textOfMessage, createdTime);
             editTextMessage.setText("");
             db.collection("messages")
                     .add(message)
