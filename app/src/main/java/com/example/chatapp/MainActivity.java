@@ -9,8 +9,10 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -59,6 +61,7 @@ public class MainActivity extends AppCompatActivity {
     private FirebaseUser user;
     private FirebaseStorage storage;
     private StorageReference reference;
+    private SharedPreferences preferences;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -68,30 +71,32 @@ public class MainActivity extends AppCompatActivity {
         mAuth = FirebaseAuth.getInstance();
         storage = FirebaseStorage.getInstance();
         reference = storage.getReference();
+        preferences = PreferenceManager.getDefaultSharedPreferences(this);
         recyclerViewMessages = findViewById(R.id.recyclerViewMessages);
         editTextMessage = findViewById(R.id.editTextMessage);
         imageViewSend = findViewById(R.id.imageViewSendMessage);
         imageViewAddImage = findViewById(R.id.imageViewAddImage);
-        adapterMessages = new MessageAdapter();
+        adapterMessages = new MessageAdapter(this);
         recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewMessages.setAdapter(adapterMessages);
+        imageViewSend.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String textOfMessage = editTextMessage.getText().toString().trim();
+                sendMessage(textOfMessage, null);
+            }
+        });
+        imageViewAddImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                intent.setType("image/jpeg");
+                intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+                startActivityForResult(intent, RC_GET_IMAGE);
+            }
+        });
         if (mAuth.getCurrentUser() != null) {
-            imageViewSend.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    String textOfMessage = editTextMessage.getText().toString().trim();
-                    sendMessage(textOfMessage, null);
-                }
-            });
-            imageViewAddImage.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View v) {
-                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
-                    intent.setType("image/jpeg");
-                    intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
-                    startActivityForResult(intent, RC_GET_IMAGE);
-                }
-            });
+            preferences.edit().putString("author", mAuth.getCurrentUser().getEmail()).apply();
         } else {
             singOut();
         }
@@ -202,7 +207,7 @@ public class MainActivity extends AppCompatActivity {
         if (result.getResultCode() == RESULT_OK) {
             // Successfully signed in
             user = mAuth.getCurrentUser();
-            Toast.makeText(this, "Вы вошли как " + user.getEmail(), Toast.LENGTH_SHORT).show();
+            preferences.edit().putString("author", user.getEmail()).apply();
             // ...
         } else {
             // Sign in failed. If response is null the user canceled the
