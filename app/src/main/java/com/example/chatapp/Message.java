@@ -4,11 +4,13 @@ public class Message {
     private String author;
     private String textOfMessage;
     private long createdTime;
+    private String imageUrl;
 
-    public Message(String author, String textOfMessage, long createdTime) {
+    public Message(String author, String textOfMessage, long createdTime, String imageUrl) {
         this.author = author;
         this.textOfMessage = textOfMessage;
         this.createdTime = createdTime;
+        this.imageUrl = imageUrl;
     }
 
     public Message() {
@@ -36,5 +38,13 @@ public class Message {
 
     public void setCreatedTime(long createdTime) {
         this.createdTime = createdTime;
+    }
+
+    public String getImageUrl() {
+        return imageUrl;
+    }
+
+    public void setImageUrl(String imageUrl) {
+        this.imageUrl = imageUrl;
     }
 }

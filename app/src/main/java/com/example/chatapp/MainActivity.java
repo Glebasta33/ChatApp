@@ -9,6 +9,7 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -21,6 +22,7 @@ import com.firebase.ui.auth.AuthUI;
 import com.firebase.ui.auth.FirebaseAuthUIActivityResultContract;
 import com.firebase.ui.auth.IdpResponse;
 import com.firebase.ui.auth.data.model.FirebaseAuthUIAuthenticationResult;
+import com.google.android.gms.tasks.Continuation;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
@@ -33,6 +35,9 @@ import com.google.firebase.firestore.EventListener;
 import com.google.firebase.firestore.FirebaseFirestore;
 import com.google.firebase.firestore.FirebaseFirestoreException;
 import com.google.firebase.firestore.QuerySnapshot;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -40,15 +45,20 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    public static final int RC_GET_IMAGE = 128;
+
     private RecyclerView recyclerViewMessages;
     private MessageAdapter adapterMessages;
 
     private EditText editTextMessage;
     private ImageView imageViewSend;
+    private ImageView imageViewAddImage;
 
     private FirebaseFirestore db;
     private FirebaseAuth mAuth;
     private FirebaseUser user;
+    private FirebaseStorage storage;
+    private StorageReference reference;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,9 +66,12 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         db = FirebaseFirestore.getInstance();
         mAuth = FirebaseAuth.getInstance();
+        storage = FirebaseStorage.getInstance();
+        reference = storage.getReference();
         recyclerViewMessages = findViewById(R.id.recyclerViewMessages);
         editTextMessage = findViewById(R.id.editTextMessage);
         imageViewSend = findViewById(R.id.imageViewSendMessage);
+        imageViewAddImage = findViewById(R.id.imageViewAddImage);
         adapterMessages = new MessageAdapter();
         recyclerViewMessages.setLayoutManager(new LinearLayoutManager(this));
         recyclerViewMessages.setAdapter(adapterMessages);
@@ -66,7 +79,17 @@ public class MainActivity extends AppCompatActivity {
             imageViewSend.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
-                    sendMessage();
+                    String textOfMessage = editTextMessage.getText().toString().trim();
+                    sendMessage(textOfMessage, null);
+                }
+            });
+            imageViewAddImage.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    Intent intent = new Intent(Intent.ACTION_GET_CONTENT);
+                    intent.setType("image/jpeg");
+                    intent.putExtra(Intent.EXTRA_LOCAL_ONLY, true);
+                    startActivityForResult(intent, RC_GET_IMAGE);
                 }
             });
         } else {
@@ -106,26 +129,63 @@ public class MainActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void sendMessage() {
-        String textOfMessage = editTextMessage.getText().toString().trim();
-        if (!textOfMessage.isEmpty()) {
-            long createdTime = System.currentTimeMillis();
-            Message message = new Message(user.getEmail(), textOfMessage, createdTime);
-            editTextMessage.setText("");
-            db.collection("messages")
-                    .add(message)
-                    .addOnFailureListener(new OnFailureListener() {
-                        @Override
-                        public void onFailure(@NonNull Exception e) {
-                            editTextMessage.setText(textOfMessage);
-                            Toast.makeText(MainActivity.this, "" + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
-                        }
-                    });
+    private void sendMessage(String textOfMessage, String imageUrl) {
+        long createdTime = System.currentTimeMillis();
+        Message message = null;
+        if (textOfMessage != null &&!textOfMessage.isEmpty()) {
+            message = new Message(user.getEmail(), textOfMessage, createdTime, null);
+        } else if (imageUrl != null && !imageUrl.isEmpty()) {
+            message = new Message(user.getEmail(), null, createdTime, imageUrl);
         } else {
             Toast.makeText(this, "Введите сообщение", Toast.LENGTH_SHORT).show();
         }
+        editTextMessage.setText("");
+        db.collection("messages")
+                .add(message)
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        editTextMessage.setText(textOfMessage);
+                        Toast.makeText(MainActivity.this, "" + e.getLocalizedMessage(), Toast.LENGTH_SHORT).show();
+                    }
+                });
     }
 
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == RC_GET_IMAGE && resultCode == RESULT_OK) {
+            if (data != null) {
+                Uri image = data.getData();
+                StorageReference referenceToImages = reference.child("images/" + image.getLastPathSegment());
+                referenceToImages.putFile(image)
+                        .continueWithTask(new Continuation<UploadTask.TaskSnapshot, Task<Uri>>() {
+                            @Override
+                            public Task<Uri> then(@NonNull Task<UploadTask.TaskSnapshot> task) throws Exception {
+                                if (!task.isSuccessful()) {
+                                    throw task.getException();
+                                }
+
+                                // Continue with the task to get the download URL
+                                return referenceToImages.getDownloadUrl();
+                            }
+                        }).addOnCompleteListener(new OnCompleteListener<Uri>() {
+                    @Override
+                    public void onComplete(@NonNull Task<Uri> task) {
+                        if (task.isSuccessful()) {
+                            Uri downloadUri = task.getResult();
+                            if (downloadUri != null) {
+                                sendMessage(null, downloadUri.toString());
+                            }
+                        } else {
+                            // Handle failures
+                            // ...
+                        }
+                    }
+                });
+            }
+        }
+    }
 
     private final ActivityResultLauncher<Intent> signInLauncher = registerForActivityResult(
             new FirebaseAuthUIActivityResultContract(),
