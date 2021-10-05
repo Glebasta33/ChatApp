@@ -62,7 +62,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         }
         if (message.getImageUrl() != null && !message.getImageUrl().isEmpty()) {
             holder.imageViewImage.setVisibility(View.VISIBLE);
-            Picasso.get().load(message.getImageUrl()).into(holder.imageViewImage);
+            Picasso.get().load(message.getImageUrl()).placeholder(R.drawable.placeholder).into(holder.imageViewImage);
         }
     }
 

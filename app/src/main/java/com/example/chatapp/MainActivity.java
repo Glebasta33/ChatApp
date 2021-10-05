@@ -46,6 +46,9 @@ import java.util.Arrays;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
+    //Todo: [X] Добавить placeholder для изображений
+    //Todo: [x] Изменить ImageView кнопок
+    //Todo: [] Добавить поле с именем при регистрации
 
     public static final int RC_GET_IMAGE = 128;
 

@@ -10,17 +10,21 @@
         android:id="@+id/imageViewSendMessage"
         android:layout_width="32dp"
         android:layout_height="32dp"
+        android:layout_marginBottom="24dp"
+        android:layout_marginEnd="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:srcCompat="@android:drawable/arrow_down_float" />
+        app:srcCompat="@drawable/btn_send_msg" />
 
     <ImageView
         android:id="@+id/imageViewAddImage"
         android:layout_width="32dp"
         android:layout_height="32dp"
+        android:layout_marginBottom="24dp"
+        android:layout_marginStart="16dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
-        app:srcCompat="@android:drawable/btn_dialog" />
+        app:srcCompat="@drawable/btn_attach_image" />
 
     <EditText
         android:id="@+id/editTextMessage"
@@ -29,15 +33,16 @@
         android:ems="10"
         android:gravity="start|top"
         android:inputType="textMultiLine"
-        app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toStartOf="@+id/imageViewSendMessage"
-        app:layout_constraintStart_toEndOf="@+id/imageViewAddImage" />
+        app:layout_constraintStart_toEndOf="@+id/imageViewAddImage"
+        app:layout_constraintTop_toBottomOf="@+id/recyclerViewMessages" />
 
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recyclerViewMessages"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        app:layout_constraintBottom_toTopOf="@+id/editTextMessage"
+        android:layout_marginBottom="8dp"
+        app:layout_constraintBottom_toTopOf="@+id/imageViewSendMessage"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
